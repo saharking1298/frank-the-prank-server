@@ -1,2 +1,3 @@
-# frank-the-prank-server
-The official web server for Frank The Prank. Connects between FtpHost and FtpRemote.
+# Frank The Prank Web Server Documentation
+
+Sorry, no documentation yet!
