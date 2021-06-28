@@ -274,17 +274,17 @@ io.on("connection", (socket) => {
     let client = {clientType: '', username: ''};
     let loggedIn = false;
 
-    const remoteAction = (denialEventName, callback) => {
+    const remoteAction = (callback, next) => {
         /* This function calls a callback only if the client is a remote control */
         if(loggedIn && client.clientType === 'remote'){
-            callback();
+            next();
         } else{
-            socket.emit(denialEventName, {approved: false, message: "noRemoteConnected"});
+            callback({approved: false, message: "noRemoteConnected"});
         }
     };
 
     /* Remote & Host events */
-    socket.on("login", (clientType, loginData) => {
+    socket.on("login", (clientType, loginData, callback) => {
         client.clientType = clientType;
         if(clientType === 'host'){
             const status = hostApproved(loginData.hostId, loginData.authToken);
@@ -292,10 +292,10 @@ io.on("connection", (socket) => {
                 client.username = loginData.hostId;
                 loggedIn = true;
                 socket.join(client.username);
-                socket.emit("hostApproved");
+                callback({approved: true});
             }
             else{
-                socket.emit("hostDenied", status.message);
+                callback({approved: false, message: status.message});
             }
         }
         else if(clientType === 'remote'){
@@ -306,7 +306,7 @@ io.on("connection", (socket) => {
                 approved = true;
                 loggedIn = true;
             }
-            socket.emit('remoteLoginResponse', {approved: approved, message: message})
+            callback({approved: approved, message: message})
         }
 
         if(loggedIn){
@@ -330,45 +330,45 @@ io.on("connection", (socket) => {
     });
 
     /* Remote events only */
-    socket.on("connectToHost", async function(hostId, securityPassword) {
-        remoteAction("connectHostResponse", async function() {
+    socket.on("connectToHost", async function(hostId, securityPassword, callback) {
+        remoteAction(callback, async function() {
             const status = await connectToHost(client.username, hostId, securityPassword);
             if(status.approved){
                 socket.join(hostId);
             }
-            socket.emit("connectHostResponse", status);
+            callback(status);
         });
     });
-    socket.on("disconnectFromHost", () => {
-        remoteAction("disconnectFromHostResponse", async () => {
+    socket.on("disconnectFromHost", (callback) => {
+        remoteAction(callback, async () => {
             const currentHostId = getPartner(client.clientType, client.username).hostId;
             await disconnectFromHost(client.username, currentHostId);
-            socket.emit("disconnectFromHostResponse", {approved: true});
+            callback({approved: true});
         });
     });
-    socket.on("getAllHosts", () => {
-        remoteAction("getAllHostsResponse", () => {
+    socket.on("getAllHosts", (callback) => {
+        remoteAction(callback, () => {
             const hosts = getHostsByOwner(client.username);
-            socket.emit("getAllHostsResponse", {approved: true, hosts: hosts});
+            callback({approved: true, hosts: hosts});
         });
     })
 
-    socket.on("changeHostToken", (hostId) => {
-        remoteAction("changeHostTokenResponse", () => {
+    socket.on("changeHostToken", (hostId, callback) => {
+        remoteAction(callback, () => {
             const status = changeHostToken(client.username, hostId);
-            socket.emit("changeHostTokenResponse", status);
+            callback(status);
         });
     });
 
-    socket.on("registerRemote", (registerData) => {
+    socket.on("registerRemote", (registerData, callback) => {
         const status = registerRemote(registerData);
-        socket.emit("registerRemoteResponse", status);
+        callback(status);
     });
 
-    socket.on("registerHost", (hostId) => {
-        remoteAction("registerHostResponse", () => {
+    socket.on("registerHost", (hostId, callback) => {
+        remoteAction(callback, () => {
             const status = registerHost(client.username, hostId);
-            socket.emit("registerHostResponse", status);
+            callback(status);
         });
     });
 
