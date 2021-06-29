@@ -4,6 +4,7 @@ const fs = require('fs');
 const PORT = 3000;
 
 const saveFilePath = 'data/save.json';
+const eventDelay = 10;
 let hosts = [];
 let remotes = [];
 let connections = [];
@@ -222,12 +223,11 @@ async function connectToHost (remoteUsername, hostId, securityPassword){
     }
     const sendConnectionRequest = async function() {
         let response;
-        hostSocket.emit("connectionRequest", {pinger: remoteUsername, password: securityPassword});
-        hostSocket.once("connectionRequestRespond", (responseGotten) => {
-            response = responseGotten;
+        hostSocket.emit("connectionRequest", {pinger: remoteUsername, password: securityPassword}, (output) => {
+            response = output;
         });
         while(!response){
-            await sleep(10);
+            await sleep(eventDelay);
         }
         return response;
     }
