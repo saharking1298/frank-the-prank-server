@@ -1,5 +1,9 @@
 const httpServer = require('http').createServer();
-const io = require('socket.io')(httpServer);
+const io = require('socket.io')(httpServer, {
+    cors: {
+        origin: "*"
+    }
+});
 const fs = require('fs');
 const PORT = 3000;
 

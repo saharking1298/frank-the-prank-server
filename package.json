@@ -4,10 +4,13 @@
     "version": "0.0.1",
     "main": "index.js",
     "nodemonConfig": {
-        "ignore": ["data/save.json", "README.md"]
+        "ignore": [
+            "data/save.json",
+            "README.md"
+        ]
     },
     "scripts": {
-        "serve": "nodemon index.js"
+        "start": "nodemon index.js"
     },
     "dependencies": {
         "socket.io": "^4.1.2"
