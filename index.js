@@ -44,11 +44,11 @@ function hostApproved(hostId, authToken){
             approved = true;
         }
         else{
-            message = "authTokenError";
+            message = "Auth token doesn't match. Please update it and try again.";
         }
     }
     else{
-        message = "hostNotExist";
+        message = "Host Id is none existent.";
     }
     let response = {approved: approved};
     if(message){
@@ -74,7 +74,7 @@ function registerRemote(registerData){
         return {approved: true};
     }
     else{
-        return {approved: false, message: "remoteAlreadyExist"};
+        return {approved: false, message: "Username already exist"};
     }
 }
 function registerHost(remoteUsername, hostId){
@@ -84,7 +84,7 @@ function registerHost(remoteUsername, hostId){
         updateSave();
         return {approved: true, token: token};
     }
-    return {approved: false, message: "hostAlreadyExist"};
+    return {approved: false, message: "Host already exist. Please try another Id."};
 }
 
 function randomInt(min, max) {
@@ -159,7 +159,12 @@ function setHostToken(hostId, token){
 }
 
 function getHostsByOwner(owner){
-    return hosts.filter((host) => host.owner === owner);
+    const ownedHosts = hosts.filter((host) => host.owner === owner);
+    let hostsMinimized = [];
+    for(host of ownedHosts){
+        hostsMinimized.push({hostId: host.hostId, token: host.token});
+    }
+    return hostsMinimized;
 }
 
 function changeHostToken(ownerName, hostId){
@@ -170,7 +175,7 @@ function changeHostToken(ownerName, hostId){
         return {approved: true, token: token};
     }
     else{
-        return {approved: false, message: "remoteNotOwner"};
+        return {approved: false, message: "You can't change host token because you are not the original owner."};
     }
 }
 
@@ -213,10 +218,10 @@ function getPartner(clientType, name){
 async function connectToHost (remoteUsername, hostId, securityPassword){
     let host = getClient('host', hostId);
     if(!host){
-        return {approved: false, message: "hostNotExists"};
+        return {approved: false, message: "Host doesn't exists"};
     }
     if(!host.socketId){
-        return {approved: false, message: "hostOffline"};
+        return {approved: false, message: "Host is offline"};
     }
     let remoteUser = getClient('remote', remoteUsername);
     let hostSocket = getSocketById(host.socketId);
@@ -238,11 +243,11 @@ async function connectToHost (remoteUsername, hostId, securityPassword){
     let output = {};
     if(!host){
         /* The host does not exist */
-        output = {approved: false, message:"hostNotExist"};
+        output = {approved: false, message:"Host doesn't exists"};
     }
     else if(!host.online){
         /* The host if offline */
-        output = {approved: false, message:"hostOffline"};
+        output = {approved: false, message:"Host is offline"};
     }
     else if(!remoteConnected){
         /* The host is online and have no connected remote, free to send a connection request */
@@ -251,7 +256,7 @@ async function connectToHost (remoteUsername, hostId, securityPassword){
     }
     else{
         if(remoteUser.priority === -1){
-            output = {approved: true, message:"adminConnected"};
+            output = {approved: true, message:"Admin connected successfully."};
         }
         else if(remoteUser.username === host.owner){
             output = {approved: true, message: "ownerConnected"};
@@ -283,7 +288,7 @@ io.on("connection", (socket) => {
         if(loggedIn && client.clientType === 'remote'){
             next();
         } else{
-            callback({approved: false, message: "noRemoteConnected"});
+            callback({approved: false, message: "No remote connected"});
         }
     };
 
@@ -304,7 +309,7 @@ io.on("connection", (socket) => {
         }
         else if(clientType === 'remote'){
             let approved = false;
-            let message = "credentialsNoMatch";
+            let message = "Credentials don't match";
             if(remoteApproved(loginData.username, loginData.password)){
                 client.username = loginData.username;
                 approved = true;
@@ -350,7 +355,7 @@ io.on("connection", (socket) => {
             callback({approved: true});
         });
     });
-    socket.on("getAllHosts", (callback) => {
+    socket.on("getOwnedHosts", (callback) => {
         remoteAction(callback, () => {
             const hosts = getHostsByOwner(client.username);
             callback({approved: true, hosts: hosts});
