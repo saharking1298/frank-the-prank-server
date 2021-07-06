@@ -37,6 +37,7 @@ function updateSave(){
 
 function hostApproved(hostId, authToken){
     const client = getClient('host', hostId);
+    console.log(hostId);
     let approved = false;
     let message;
     if(client){
@@ -155,6 +156,13 @@ function setHostToken(hostId, token){
     if(host){
         host.token = token;
         updateSave();
+    }
+}
+function deleteHost(hostId){
+    hosts.splice(hosts.findIndex(host => host.hostId === hostId), 1);
+    const connectionIndex = connections.findIndex(connection => connection.hostId === hostId);
+    if (connectionIndex !== -1){
+        connections.splice(connectionIndex, 1);
     }
 }
 
@@ -368,7 +376,21 @@ io.on("connection", (socket) => {
             callback(status);
         });
     });
-
+    socket.on("deleteHost", (hostId, callback) => {
+        remoteAction(callback, () => {
+            const host = getClient('host', hostId);
+            if(host.owner === client.username){
+                try {
+                    getSocketById(host.socketId).emit("hostTerminate");
+                } catch {}
+                deleteHost(hostId);
+                callback({approved: true});
+            }
+            else{
+                callback({approved: false, message: "You can't delete a host you don't own."});
+            }
+        })
+    });
     socket.on("registerRemote", (registerData, callback) => {
         const status = registerRemote(registerData);
         callback(status);
